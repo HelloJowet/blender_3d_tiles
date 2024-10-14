@@ -135,9 +135,12 @@ class Chunk:
         bpy.ops.object.mode_set(mode='OBJECT')
 
     def _combine_materials(self, object: Object):
+        object_name = object.name
         seperated_objects: list[Object] = BlenderObjectUtils.separate_by_materials(object)
         for seperated_object in seperated_objects:
             bpy.context.view_layer.objects.active = seperated_object
+            bpy.ops.object.select_all(action='DESELECT')
+            seperated_object.select_set(True)
 
             # Create a new UV layer for the object
             new_uv_layer = seperated_object.data.uv_layers.new(name='baked', do_init=True)
@@ -151,15 +154,13 @@ class Chunk:
             image = BlenderObjectUtils.get_image(seperated_object)
             material = seperated_object.data.materials[0]
             ideal_texture_width, ideal_texture_height = BlenderImageUtils.get_ideal_size(seperated_object, image, uv_layer=seperated_object.data.uv_layers.active)
-            BlenderMaterialUtils.add_empty_image(material, image, name=f'{seperated_object}_texture', width=ideal_texture_width, height=ideal_texture_height)
+            BlenderMaterialUtils.add_empty_image(material, image, name=f'{seperated_object.name}_texture', width=ideal_texture_width, height=ideal_texture_height)
 
             bpy.ops.object.mode_set(mode='EDIT')
             bpy.ops.mesh.select_all(action='SELECT')
             bpy.ops.uv.pack_islands(scale=True, margin=0)
             bpy.ops.object.mode_set(mode='OBJECT')
 
-            bpy.ops.object.select_all(action='DESELECT')
-            seperated_object.select_set(True)
             bpy.context.scene.render.bake.use_pass_direct = False
             bpy.context.scene.render.bake.use_pass_indirect = False
             bpy.context.scene.render.bake.use_pass_color = True
@@ -169,8 +170,10 @@ class Chunk:
             nodes = node_tree.nodes
 
             node_principled_bsdf = nodes.get('Principled BSDF')
-            node_material_1_texture = nodes.get(f'{seperated_object}_texture')
+            node_material_1_texture = nodes.get(f'{seperated_object.name}_texture')
             node_tree.links.new(node_material_1_texture.outputs['Color'], node_principled_bsdf.inputs['Base Color'])
+
+            seperated_object.data.uv_layers.active.active_render = True
 
     def create_tiles(self, depth: int):
         root_tile_object = bpy.data.objects.get(f'tile_{self.grid_x}_{self.grid_y}__1')
