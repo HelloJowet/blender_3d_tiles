@@ -1,3 +1,4 @@
+import math
 from typing import Optional
 
 import bmesh
@@ -7,10 +8,18 @@ from bpy.types import DecimateModifier, Image, Material, MeshUVLoopLayer, Object
 
 
 class BlenderSession:
-    def configure_renderer(self):
+    def __init__(self) -> None:
         # required for baking textures
         bpy.context.scene.render.engine = 'CYCLES'
         bpy.context.scene.cycles.device = 'GPU'
+
+        # default bake settings
+        bpy.context.scene.render.bake.use_pass_direct = False
+        bpy.context.scene.render.bake.use_pass_indirect = False
+        bpy.context.scene.render.bake.use_pass_color = True
+
+        # required by uv operations like pack_islands
+        bpy.context.scene.tool_settings.use_uv_select_sync = True
 
     def clean(self):
         for mesh in bpy.data.meshes:
@@ -31,9 +40,16 @@ class BlenderObjectUtils:
         bpy.context.collection.objects.link(new_object)
         return new_object
 
-    def get_image(object: Object) -> Optional[Image]:
-        nodes = object.data.materials[0].node_tree.nodes
-        return next((node.image for node in nodes if node.type == 'TEX_IMAGE'), None)
+    def get_image_nodes(object: Object) -> list[ShaderNodeTexImage]:
+        image_nodes = []
+
+        for material in object.data.materials:
+            if material and material.use_nodes:
+                for node in material.node_tree.nodes:
+                    if node.type == 'TEX_IMAGE':
+                        image_nodes.append(node)
+
+        return image_nodes
 
     def separate_by_materials(object: Object) -> list[Object]:
         seperated_objects = []
@@ -90,17 +106,29 @@ class BlenderImageUtils:
 
 
 class BlenderMaterialUtils:
-    def add_empty_image(material: Material, image: Image, name: str, width: int, height: int):
-        nodes = material.node_tree.nodes
+    def add_empty_image(material: Material, name: str, width: Optional[int], height: Optional[int], image: Optional[Image] = None) -> ShaderNodeTexImage:
         if image is None:
-            raise Exception('Material has no Image assigned. TODO: This case needs to be handled')
-        new_image = bpy.data.images.new(name, width, height, alpha=True)
-        new_image.generated_color = (0, 0, 0, 0)
+            if width is None or height is None:
+                raise Exception('image width and heigh needs to be specified when creating a new image')
+            image = bpy.data.images.new(name, width, height, alpha=True)
+            image.generated_color = (0, 0, 0, 0)
+        nodes = material.node_tree.nodes
         image_texture_node: ShaderNodeTexImage = nodes.new(type='ShaderNodeTexImage')
         image_texture_node.name = name
-        image_texture_node.image = new_image
+        image_texture_node.image = image
         image_texture_node.select = True
         nodes.active = image_texture_node
+        return image_texture_node
+
+
+class BlenderUVUtils:
+    def pack_islands(scale: bool, margin: int, calculate_average_islands_scale: bool = False):
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.select_all(action='SELECT')
+        if calculate_average_islands_scale:
+            bpy.ops.uv.average_islands_scale()
+        bpy.ops.uv.pack_islands(scale=scale, margin=margin)
+        bpy.ops.object.mode_set(mode='OBJECT')
 
 
 class Chunk:
@@ -143,37 +171,81 @@ class Chunk:
             seperated_object.select_set(True)
 
             # Create a new UV layer for the object
-            new_uv_layer = seperated_object.data.uv_layers.new(name='baked', do_init=True)
+            new_uv_layer = seperated_object.data.uv_layers.new(name='uv_map_01', do_init=True)
             seperated_object.data.uv_layers.active = new_uv_layer
 
-            bpy.ops.object.mode_set(mode='EDIT')
-            bpy.ops.mesh.select_all(action='SELECT')
-            bpy.ops.uv.pack_islands(scale=False, margin=0)
-            bpy.ops.object.mode_set(mode='OBJECT')
+            BlenderUVUtils.pack_islands(scale=False, margin=0)
 
-            image = BlenderObjectUtils.get_image(seperated_object)
+            image_nodes = BlenderObjectUtils.get_image_nodes(seperated_object)
+            if len(seperated_object.data.materials) != 1:
+                raise Exception('Object should only have one material assigned')
+            if len(image_nodes) != 1:
+                raise Exception('Object should only have one image assigned')
             material = seperated_object.data.materials[0]
-            ideal_texture_width, ideal_texture_height = BlenderImageUtils.get_ideal_size(seperated_object, image, uv_layer=seperated_object.data.uv_layers.active)
-            BlenderMaterialUtils.add_empty_image(material, image, name=f'{seperated_object.name}_texture', width=ideal_texture_width, height=ideal_texture_height)
+            node_image: ShaderNodeTexImage = image_nodes[0]
+            ideal_texture_width, ideal_texture_height = BlenderImageUtils.get_ideal_size(seperated_object, node_image.image, uv_layer=seperated_object.data.uv_layers.active)
+            node_new_image: ShaderNodeTexImage = BlenderMaterialUtils.add_empty_image(
+                material,
+                name=f'{seperated_object.name}_texture',
+                width=ideal_texture_width,
+                height=ideal_texture_height,
+            )
 
-            bpy.ops.object.mode_set(mode='EDIT')
-            bpy.ops.mesh.select_all(action='SELECT')
-            bpy.ops.uv.pack_islands(scale=True, margin=0)
-            bpy.ops.object.mode_set(mode='OBJECT')
+            BlenderUVUtils.pack_islands(scale=True, margin=0)
 
-            bpy.context.scene.render.bake.use_pass_direct = False
-            bpy.context.scene.render.bake.use_pass_indirect = False
-            bpy.context.scene.render.bake.use_pass_color = True
             bpy.ops.object.bake(type='DIFFUSE')
 
             node_tree = seperated_object.data.materials[0].node_tree
             nodes = node_tree.nodes
 
             node_principled_bsdf = nodes.get('Principled BSDF')
-            node_material_1_texture = nodes.get(f'{seperated_object.name}_texture')
-            node_tree.links.new(node_material_1_texture.outputs['Color'], node_principled_bsdf.inputs['Base Color'])
+            node_tree.links.new(node_new_image.outputs['Color'], node_principled_bsdf.inputs['Base Color'])
+
+            # remove old image from material
+            material.node_tree.nodes.remove(node_image)
 
             seperated_object.data.uv_layers.active.active_render = True
+
+        for seperated_object in seperated_objects:
+            seperated_object.select_set(True)
+            bpy.context.view_layer.objects.active = seperated_object
+
+        bpy.ops.object.join()
+        combined_object = bpy.context.view_layer.objects.active
+        combined_object.name = object_name
+
+        uv_layer = combined_object.data.uv_layers.new(name='uv_map_02')
+        combined_object.data.uv_layers.active = uv_layer
+
+        BlenderUVUtils.pack_islands(scale=True, margin=0, calculate_average_islands_scale=True)
+
+        image_nodes: list[ShaderNodeTexImage] = BlenderObjectUtils.get_image_nodes(combined_object)
+        total_pixel_count = sum(image_node.image.size[0] * image_node.image.size[1] for image_node in image_nodes)
+        image_resolution = int(math.sqrt(total_pixel_count))
+        image = bpy.data.images.new(name=f'{object_name}_texture', width=image_resolution, height=image_resolution, alpha=True)
+        image.generated_color = (0, 0, 0, 0)
+
+        for material in combined_object.data.materials:
+            nodes = material.node_tree.nodes
+            BlenderMaterialUtils.add_empty_image(material, name=f'{object_name}_texture', width=None, height=None, image=image)
+
+        bpy.ops.object.bake(type='DIFFUSE')
+
+        material = bpy.data.materials.new(name='material_01')
+        material.use_nodes = True
+
+        nodes = material.node_tree.nodes
+        node_image: ShaderNodeTexImage = nodes.new(type='ShaderNodeTexImage')
+        node_image.name = f'{object_name}_texture'
+        node_image.image = image
+        node_principled_bsdf = nodes.get('Principled BSDF')
+        material.node_tree.links.new(node_image.outputs['Color'], node_principled_bsdf.inputs['Base Color'])
+
+        combined_object = bpy.data.objects.get(object_name)
+        combined_object.data.materials.clear()
+        combined_object.data.materials.append(material)
+
+        combined_object.data.uv_layers.active.active_render = True
 
     def create_tiles(self, depth: int):
         root_tile_object = bpy.data.objects.get(f'tile_{self.grid_x}_{self.grid_y}__1')
@@ -280,11 +352,10 @@ class Tile:
 
 
 blender_session = BlenderSession()
-blender_session.configure_renderer()
 blender_session.clean()
 
 grid_x = 106
 grid_y = 69
 chunk = Chunk(grid_x, grid_y)
 chunk.load_3d_object(file_path=f'/Users/jonas.frei/Documents/Python/blender_01/data/data_2/Tile-{grid_x}-{grid_y}-1-1.obj', clean=True, combine_materials=True)
-# chunk.create_tiles(depth=3)
+# # chunk.create_tiles(depth=3)
