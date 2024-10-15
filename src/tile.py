@@ -15,7 +15,7 @@ class Tile:
         self.childrens = []
 
     def subdivide(self):
-        object_duplicated: Object = utils.object.duplicate(object=self.object, new_object_name=f'{self.object.name}_temp')
+        object_duplicated = utils.object.duplicate(object=self.object, new_object_name=f'{self.object.name}_temp')
         bpy.context.view_layer.objects.active = object_duplicated
 
         bpy.ops.object.mode_set(mode='EDIT')
