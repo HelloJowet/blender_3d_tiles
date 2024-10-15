@@ -5,6 +5,10 @@ from src.tile import Tile
 
 
 class Chunk:
+    """
+    Represents a chunk in a grid with 3D tiles.
+    """
+
     grid_x: int
     grid_y: int
     tiles: list[Tile]
@@ -15,11 +19,15 @@ class Chunk:
         self.tiles = []
 
     def load_3d_object(self, file_path: str, clean: bool = True, combine_materials: bool = True):
-        bpy.ops.wm.obj_import(filepath=file_path, up_axis='Z')
+        bpy.ops.wm.obj_import(filepath=file_path)
 
+        # Access the imported object and assign a unique name based on grid coordinates
         selected_object = bpy.context.active_object
-        selected_object.scale = (0.1, 0.1, 0.1)
         selected_object.name = f'tile_{self.grid_x}_{self.grid_y}__1'
+        selected_object.rotation_euler = (0, 0, 0)
+
+        # Center the view on the imported object
+        bpy.ops.view3d.view_selected()
 
         if clean:
             utils.object.clean()
@@ -27,6 +35,10 @@ class Chunk:
             utils.object.combine_materials(selected_object)
 
     def create_tiles(self, depth: int):
+        """
+        Generates a hierarchical tile structure for the chunk, subdividing the root tile based on the specified depth.
+        """
+
         root_tile_object = bpy.data.objects.get(f'tile_{self.grid_x}_{self.grid_y}__1')
         if not root_tile_object:
             raise Exception('Root tile could not be found')
@@ -35,14 +47,24 @@ class Chunk:
         self.tiles = self._create_tile_children(tile=root_tile, current_depth=1, max_depth=depth)
 
     def _create_tile_children(self, tile: Tile, current_depth: int, max_depth: int) -> Tile:
+        """
+        Recursively subdivides a tile, simplifies its geometry and texture, and creates children tiles.
+        """
+
+        # Subdivide the tile into smaller tiles
         tile.subdivide()
 
+        # Calculate the simplification ratio based on depth
         ratio = 1 / (4 ** (max_depth - current_depth))
-        tile.reduce_mesh_vertices(decimate_ratio=ratio)
+
+        # Simplify geometry and texture based on the calculated ratio
+        tile.simplify(ratio)
         tile.reduce_texture_resolution(texture_scale=ratio)
 
+        # Increment the depth and recurse if not yet at maximum depth
         current_depth += 1
         if current_depth < max_depth:
-            tile.childrens = [self._create_tile_children(tile_child, current_depth, max_depth) for tile_child in tile.childrens[:1]]
+            # Recursively create child tiles for further subdivision
+            tile.childrens = [self._create_tile_children(tile_child, current_depth, max_depth) for tile_child in tile.childrens]
 
         return tile

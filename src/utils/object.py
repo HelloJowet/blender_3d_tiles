@@ -1,7 +1,9 @@
 import math
 
+import bmesh
 import bpy
-from bpy.types import Object, ShaderNodeTexImage
+from bmesh.types import BMFace
+from bpy.types import DecimateModifier, Object, ShaderNodeTexImage
 
 from src import utils
 
@@ -154,3 +156,73 @@ def combine_materials(object: Object):
     total_pixel_count = sum(image_node.image.size[0] * image_node.image.size[1] for image_node in image_nodes)
     image_resolution = int(math.sqrt(total_pixel_count))
     merge_images(combined_object, image_resolution, new_uv_layer_name='uv_layer_02')
+
+
+def subdivide(object: Object):
+    """
+    Subdivides an object into four quadrants.
+    """
+
+    # Duplicate the original object to work with a temporary copy
+    object_duplicated = duplicate(object=object, new_object_name=f'{object.name}_temp')
+    bpy.context.view_layer.objects.active = object_duplicated
+
+    # Switch to Edit mode to work with vertices and faces
+    bpy.ops.object.mode_set(mode='EDIT')
+    bm = bmesh.from_edit_mesh(object_duplicated.data)
+
+    # Calculate the bounding box center along the x and y axes
+    min_x = min(vertex.co.x for vertex in bm.verts)
+    max_x = max(vertex.co.x for vertex in bm.verts)
+    min_y = min(vertex.co.y for vertex in bm.verts)
+    max_y = max(vertex.co.y for vertex in bm.verts)
+    center_x = (min_x + max_x) / 2
+    center_y = (min_y + max_y) / 2
+
+    # Initialize four lists to hold faces for each quadrant
+    quadrants: list[list[BMFace]] = [[], [], [], []]
+
+    # Sort faces into quadrants based on face centroid positions
+    for face in bm.faces:
+        face_center = face.calc_center_median()
+        if face_center.x < center_x and face_center.y < center_y:
+            quadrants[0].append(face)  # Lower-left quadrant
+        elif face_center.x >= center_x and face_center.y < center_y:
+            quadrants[1].append(face)  # Lower-right quadrant
+        elif face_center.x < center_x and face_center.y >= center_y:
+            quadrants[2].append(face)  # Upper-left quadrant
+        elif face_center.x >= center_x and face_center.y >= center_y:
+            quadrants[3].append(face)  # Upper-right quadrant
+
+    # Separate faces in each quadrant into a new object
+    for faces in quadrants:
+        bpy.ops.mesh.select_all(action='DESELECT')
+
+        # Select all faces in the current quadrant
+        for face in faces:
+            face.select = True
+
+        # Separate the selected faces into a new object
+        bpy.ops.mesh.separate(type='SELECTED')
+
+    # Update mesh and free bmesh data
+    bmesh.update_edit_mesh(object_duplicated.data)
+    bm.free()
+
+    # Switch back to Object mode and remove the temporary duplicate object
+    bpy.ops.object.mode_set(mode='OBJECT')
+    bpy.data.objects.remove(object_duplicated, do_unlink=True)
+
+
+def reduce_vertices(object: Object, decimate_ratio: float):
+    """
+    Reduces the vertex count of an object.
+    """
+
+    # Create a Decimate modifier for the object
+    decimate_modifier: DecimateModifier = object.modifiers.new(name='Decimate', type='DECIMATE')
+    decimate_modifier.ratio = decimate_ratio  # Set decimation ratio to reduce vertices
+
+    # Ensure no unnecessary triangles are created and keep UV symmetry consistent
+    decimate_modifier.use_collapse_triangulate = False
+    decimate_modifier.use_symmetry = True
