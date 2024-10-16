@@ -1,6 +1,6 @@
 import bpy
 
-from src import utils
+from src import logger, utils
 from src.tile import Tile
 
 
@@ -34,6 +34,8 @@ class Chunk:
         if combine_materials and len(selected_object.data.materials) > 1:
             utils.object.combine_materials(selected_object)
 
+        logger.debug(f'Successfully imported a 3d object from the following file path: {file_path}')
+
     def create_tiles(self, depth: int):
         """
         Generates a hierarchical tile structure for the chunk, subdividing the root tile based on the specified depth.
@@ -44,9 +46,9 @@ class Chunk:
             raise Exception('Root tile could not be found')
 
         root_tile = Tile(object=root_tile_object)
-        self.tiles = self._create_tile_children(tile=root_tile, current_depth=1, max_depth=depth)
+        self.tiles = self._get_tile_childrens(tile=root_tile, current_depth=1, max_depth=depth)
 
-    def _create_tile_children(self, tile: Tile, current_depth: int, max_depth: int) -> Tile:
+    def _get_tile_childrens(self, tile: Tile, current_depth: int, max_depth: int) -> list[Tile]:
         """
         Recursively subdivides a tile, simplifies its geometry and texture, and creates children tiles.
         """
@@ -54,11 +56,10 @@ class Chunk:
         # Subdivide the tile into smaller tiles
         tile.subdivide()
 
-        # Calculate the simplification ratio based on depth
-        ratio = 1 / (4 ** (max_depth - current_depth))
-        # Simplify geometry and texture based on the calculated ratio
-        tile.simplify(ratio)
-        tile.reduce_texture_resolution(texture_scale=ratio)
+        # Simplify geometry based on the tileset depth
+        tile.simplify(ratio=1 / (4 ** (max_depth - current_depth)))
+
+        tile_childrens = []
 
         # Increment the depth and recurse if not yet at maximum depth
         current_depth += 1
@@ -66,6 +67,8 @@ class Chunk:
             # Recursively create child tiles for further subdivision
             for tile_child in tile.childrens[:1]:
                 tile_child.remove_unused_texture_pixels()
-                tile.childrens += self._create_tile_children(tile_child, current_depth, max_depth)
+                tile_child.reduce_texture_resolution(texture_scale=0.25)
+                tile_child.childrens = self._get_tile_childrens(tile_child, current_depth, max_depth)
+                tile_childrens.append(tile_child)
 
-        return tile
+        return tile_childrens

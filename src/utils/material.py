@@ -29,7 +29,7 @@ def add_empty_image(material: Material, name: str, width: Optional[int], height:
     return image_texture_node
 
 
-def change_texture_resolution(material: Material, texture_scale: float):
+def change_texture_resolution(material: Material, texture_scale: float, new_image_name: str):
     """
     Changes the resolution of all image textures in the specified material by scaling them according to the provided resolution multiplier.
     """
@@ -40,15 +40,22 @@ def change_texture_resolution(material: Material, texture_scale: float):
         for node in material.node_tree.nodes:
             # Identify image texture nodes specifically
             if node.type == 'TEX_IMAGE' and node.image:
-                # Copy the image to avoid modifying the original image file
-                new_image = node.image.copy()
-                if new_image:
-                    # Calculate new dimensions based on the texture scaling factor
-                    new_width = int(new_image.size[0] * texture_scale)
-                    new_height = int(new_image.size[1] * texture_scale)
+                original_image: Image = node.image
 
-                    # Apply the new dimensions to the copied image
-                    new_image.scale(new_width, new_height)
+                # Check if image is packed, which ensures data is available in-memory
+                if not original_image.packed_file:
+                    original_image.pack()  # Embed image data into the .blend file
 
-                    # Assign the scaled image back to the texture node
-                    node.image = new_image
+                new_image = original_image.copy()
+                new_image.name = new_image_name
+
+                # Calculate new dimensions based on the texture scaling factor
+                new_width = int(new_image.size[0] * texture_scale)
+                new_height = int(new_image.size[1] * texture_scale)
+                print(new_image_name, new_width, new_height)
+
+                # Apply the new dimensions to the copied image
+                new_image.scale(new_width, new_height)
+
+                # Assign the scaled image back to the texture node
+                node.image = new_image
