@@ -53,21 +53,25 @@ class Chunk:
         Recursively subdivides a tile, simplifies its geometry and texture, and creates children tiles.
         """
 
+        tile_childrens = []
+
         # Subdivide the tile into smaller tiles
         tile.subdivide()
 
-        # Simplify geometry based on the tileset depth
-        tile.simplify(ratio=1 / (4 ** (max_depth - current_depth)))
+        # Calculate the simplification ratio based on depth
+        ratio = 1 / (4 ** (max_depth - current_depth))
+        # Simplify geometry and texture based on the calculated ratio
+        tile.simplify(ratio)
+        tile.reduce_texture_resolution(texture_scale=ratio)
 
-        tile_childrens = []
+        if current_depth != 1:
+            tile.remove_unused_texture_pixels()
 
         # Increment the depth and recurse if not yet at maximum depth
         current_depth += 1
         if current_depth < max_depth:
             # Recursively create child tiles for further subdivision
-            for tile_child in tile.childrens[:1]:
-                tile_child.remove_unused_texture_pixels()
-                tile_child.reduce_texture_resolution(texture_scale=0.25)
+            for tile_child in tile.childrens:
                 tile_child.childrens = self._get_tile_childrens(tile_child, current_depth, max_depth)
                 tile_childrens.append(tile_child)
 

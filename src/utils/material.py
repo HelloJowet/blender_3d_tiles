@@ -52,7 +52,6 @@ def change_texture_resolution(material: Material, texture_scale: float, new_imag
                 # Calculate new dimensions based on the texture scaling factor
                 new_width = int(new_image.size[0] * texture_scale)
                 new_height = int(new_image.size[1] * texture_scale)
-                print(new_image_name, new_width, new_height)
 
                 # Apply the new dimensions to the copied image
                 new_image.scale(new_width, new_height)
