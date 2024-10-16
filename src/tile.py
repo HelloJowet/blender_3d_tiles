@@ -35,7 +35,6 @@ class Tile:
             children_tile_object.data.materials.append(material)
 
             self.childrens.append(Tile(object=children_tile_object))
-            print(f'{children_tile_object.name} tile successfully created')
 
     def simplify(self, ratio: float):
         """
@@ -61,5 +60,3 @@ class Tile:
         material = self.object.data.materials[0]
 
         utils.image.remove_unused_pixels(image_node, material, self.object, new_uv_layer_name=str(uuid.uuid4()))
-
-        print('remove_unused_texture_pixels success')

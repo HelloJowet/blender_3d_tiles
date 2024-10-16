@@ -48,6 +48,8 @@ class Chunk:
         root_tile = Tile(object=root_tile_object)
         self.tiles = self._get_tile_childrens(tile=root_tile, current_depth=1, max_depth=depth)
 
+        logger.debug(f'Successfully created tiles in the chunk {self.grid_x}_{self.grid_y}')
+
     def _get_tile_childrens(self, tile: Tile, current_depth: int, max_depth: int) -> list[Tile]:
         """
         Recursively subdivides a tile, simplifies its geometry and texture, and creates children tiles.
@@ -74,5 +76,7 @@ class Chunk:
             for tile_child in tile.childrens:
                 tile_child.childrens = self._get_tile_childrens(tile_child, current_depth, max_depth)
                 tile_childrens.append(tile_child)
+
+        logger.debug(f'Successfully created the tile {tile.object.name}')
 
         return tile_childrens
