@@ -34,16 +34,20 @@ def get_ideal_size(object: Object, image: Image, uv_layer: MeshUVLoopLayer) -> t
     return (ideal_image_width, ideal_image_height)
 
 
-def remove_unused_pixels(image_node: ShaderNodeTexImage, material: Material, object: Object, new_uv_layer_name):
+def remove_unused_pixels(image_node: ShaderNodeTexImage, material: Material, object: Object, new_uv_layer_name: str):
     """
     Create a trimmed version of an image texture by removing unused pixels that are not covered by the UV map.
     """
 
+    bpy.ops.object.select_all(action='DESELECT')
+    object.select_set(True)
+
     # Create a new UV layer
-    new_uv_layer = object.data.uv_layers.new(new_uv_layer_name)
+    new_uv_layer = object.data.uv_layers.new(name=new_uv_layer_name)
     object.data.uv_layers.active = new_uv_layer
 
     # Pack UV islands without scaling, to optimize texture space usage
+    bpy.context.view_layer.objects.active = object
     utils.uv.pack_islands(scale=False, margin=0)
 
     # Calculate ideal image size based on UV-mapped area

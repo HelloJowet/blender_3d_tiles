@@ -29,7 +29,7 @@ def add_empty_image(material: Material, name: str, width: Optional[int], height:
     return image_texture_node
 
 
-def change_texture_resolution(material: Material, resolution: float):
+def change_texture_resolution(material: Material, texture_scale: float):
     """
     Changes the resolution of all image textures in the specified material by scaling them according to the provided resolution multiplier.
     """
@@ -43,9 +43,9 @@ def change_texture_resolution(material: Material, resolution: float):
                 # Copy the image to avoid modifying the original image file
                 new_image = node.image.copy()
                 if new_image:
-                    # Calculate new dimensions based on the resolution scaling factor
-                    new_width = int(new_image.size[0] * resolution)
-                    new_height = int(new_image.size[1] * resolution)
+                    # Calculate new dimensions based on the texture scaling factor
+                    new_width = int(new_image.size[0] * texture_scale)
+                    new_height = int(new_image.size[1] * texture_scale)
 
                     # Apply the new dimensions to the copied image
                     new_image.scale(new_width, new_height)

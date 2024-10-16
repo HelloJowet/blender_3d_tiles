@@ -1,6 +1,7 @@
 import importlib
 import os
 import sys
+from typing import Optional
 
 import bpy
 
@@ -18,16 +19,27 @@ def setup_blender_local_dev_environment():
 
 def reload_modules():
     """
-    Reloads modules to ensure that the latest code changes are reflected without restarting Blender.
-    This is useful during development to see updates in code without reloading the entire environment.
+    Reloads all modules in the current project directory to ensure the latest code changes are reflected without restarting Blender.
+    This is especially useful during development to see updates without reloading the entire environment.
     """
 
-    import src.chunk  # noqa
-    import src.session  # noqa
+    # Get the current project directory path
+    project_directory = os.getcwd()
+    module_names = list(sys.modules.keys())
 
-    # Reload modules to apply the latest changes
-    importlib.reload(src.chunk)
-    importlib.reload(src.session)
+    for module_name in module_names:
+        module = sys.modules[module_name]
+        module_path: Optional[str] = getattr(module, '__file__', None)
+
+        if module_path and module_path.startswith(project_directory):
+            if getattr(module, '__spec__', None) is None:
+                # Skipping module due to missing spec
+                continue
+            try:
+                # Reload the module to apply any recent code changes
+                importlib.reload(module)
+            except Exception as e:
+                print(f'Failed to reload module: {module_path} - {e}')
 
 
 setup_blender_local_dev_environment()
@@ -45,3 +57,4 @@ grid_y = 69
 chunk = Chunk(grid_x, grid_y)
 # chunk.load_3d_object(file_path=f'/Users/jonas.frei/Documents/Python/blender_01/data/data_2/Tile-{grid_x}-{grid_y}-1-1.obj', clean=False, combine_materials=False)
 chunk.create_tiles(depth=3)
+print('yess')
