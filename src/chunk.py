@@ -60,23 +60,25 @@ class Chunk:
         # Subdivide the tile into smaller tiles
         tile.subdivide()
 
-        # Calculate the simplification ratio based on depth
-        ratio = 1 / (4 ** (max_depth - current_depth))
-        # Simplify geometry and texture based on the calculated ratio
-        tile.simplify(ratio)
-        tile.reduce_texture_resolution(texture_scale=ratio)
+        # Simplify geometry and texture based on the tileset depth
+        simplification_ratio = 1 / 4 ** (max_depth - current_depth)
+        tile.simplify(simplification_ratio if simplification_ratio > 0.03 else 0.03)
 
-        if current_depth != 1:
-            tile.remove_unused_texture_pixels()
-
-        # Increment the depth and recurse if not yet at maximum depth
-        current_depth += 1
-        if current_depth < max_depth:
-            # Recursively create child tiles for further subdivision
-            for tile_child in tile.childrens:
-                tile_child.childrens = self._get_tile_childrens(tile_child, current_depth, max_depth)
-                tile_childrens.append(tile_child)
+        texture_scale = 1 / 2 ** (max_depth - current_depth)
+        if current_depth == 1:
+            tile.reduce_texture_resolution(texture_scale)
+        else:
+            tile.remove_unused_texture_pixels(texture_scale)
 
         logger.debug(f'Successfully created the tile {tile.object.name}')
+
+        current_depth += 1
+        # Recursively create child tiles for further subdivision
+        for tile_child in tile.childrens:
+            if current_depth < max_depth:
+                tile_child.childrens = self._get_tile_childrens(tile_child, current_depth, max_depth)
+                tile_childrens.append(tile_child)
+            else:
+                tile_child.remove_unused_texture_pixels()
 
         return tile_childrens

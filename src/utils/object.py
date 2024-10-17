@@ -84,7 +84,7 @@ def merge_images(object: Object, resolution: int, new_uv_layer_name: str):
     Creates a new UV layer and image for the object, bakes combined textures, and links them.
     """
 
-    uv_layer = object.data.uv_layers.new(new_uv_layer_name)
+    uv_layer = object.data.uv_layers.new(name=new_uv_layer_name)
     object.data.uv_layers.active = uv_layer
 
     utils.uv.pack_islands(scale=True, margin=0, calculate_average_islands_scale=True)

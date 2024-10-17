@@ -34,7 +34,7 @@ def get_ideal_size(object: Object, image: Image, uv_layer: MeshUVLoopLayer) -> t
     return (ideal_image_width, ideal_image_height)
 
 
-def remove_unused_pixels(image_node: ShaderNodeTexImage, material: Material, object: Object, new_uv_layer_name: str):
+def remove_unused_pixels(image_node: ShaderNodeTexImage, material: Material, object: Object, new_uv_layer_name: str, texture_scale: float = 1):
     """
     Create a trimmed version of an image texture by removing unused pixels that are not covered by the UV map.
     """
@@ -53,7 +53,12 @@ def remove_unused_pixels(image_node: ShaderNodeTexImage, material: Material, obj
     # Calculate ideal image size based on UV-mapped area
     ideal_texture_width, ideal_texture_height = get_ideal_size(object, image_node.image, uv_layer=object.data.uv_layers.active)
     # Create a new empty image with the calculated size and add it to the material
-    node_new_image = utils.material.add_empty_image(material, name=f'{object.name}_texture', width=ideal_texture_width, height=ideal_texture_height)
+    node_new_image = utils.material.add_empty_image(
+        material,
+        name=f'{object.name}_texture',
+        width=int(ideal_texture_width * texture_scale),
+        height=int(ideal_texture_height * texture_scale),
+    )
 
     # Re-pack UV islands with scaling to maximize space usage in the new texture
     utils.uv.pack_islands(scale=True, margin=0)

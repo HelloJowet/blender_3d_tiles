@@ -52,11 +52,11 @@ class Tile:
             raise Exception('Tile object should only contain one material')
 
         material = self.object.data.materials[0]
-        utils.material.change_texture_resolution(material, texture_scale, new_image_name=f'{self.object.name}_texture_low_resolution')
+        self.object.data.materials[0] = utils.material.change_texture_resolution(material, texture_scale, new_image_name=f'{self.object.name}_texture_low_resolution')
 
-    def remove_unused_texture_pixels(self):
+    def remove_unused_texture_pixels(self, texture_scale: float = 1):
         images_nodes = utils.object.get_image_nodes(self.object)
         image_node = images_nodes[0]
         material = self.object.data.materials[0]
 
-        utils.image.remove_unused_pixels(image_node, material, self.object, new_uv_layer_name=str(uuid.uuid4()))
+        utils.image.remove_unused_pixels(image_node, material, self.object, new_uv_layer_name=str(uuid.uuid4()), texture_scale=texture_scale)

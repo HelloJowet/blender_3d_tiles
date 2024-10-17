@@ -49,12 +49,11 @@ from src.chunk import Chunk  # noqa
 from src.session import Session  # noqa
 
 # Initialize session, which automatically cleans up existing data in the scene
-# session = Session()
-# session.clean()
+session = Session()
+session.clean()
 
 grid_x = 106
 grid_y = 69
 chunk = Chunk(grid_x, grid_y)
-# chunk.load_3d_object(file_path=f'/Users/jonas.frei/Documents/Python/blender_01/data/data_2/Tile-{grid_x}-{grid_y}-1-1.obj', clean=False, combine_materials=False)
-chunk.create_tiles(depth=4)
-print('yess')
+chunk.load_3d_object(file_path=f'/Users/jonas.frei/Documents/Python/blender_01/data/data_2/Tile-{grid_x}-{grid_y}-1-1.obj', clean=True, combine_materials=True)
+# chunk.create_tiles(depth=4)

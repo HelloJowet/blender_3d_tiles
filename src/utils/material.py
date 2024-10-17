@@ -58,3 +58,5 @@ def change_texture_resolution(material: Material, texture_scale: float, new_imag
 
                 # Assign the scaled image back to the texture node
                 node.image = new_image
+
+    return material
