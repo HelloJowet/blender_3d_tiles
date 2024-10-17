@@ -90,13 +90,13 @@ def merge_images(object: Object, resolution: int, new_uv_layer_name: str):
     utils.uv.pack_islands(scale=True, margin=0, calculate_average_islands_scale=True)
 
     # Create a new transparent image for baking
-    image = bpy.data.images.new(name=f'{object.name}_texture', width=resolution, height=resolution, alpha=True)
+    image = bpy.data.images.new(name=object.name, width=resolution, height=resolution, alpha=True)
     image.generated_color = (0, 0, 0, 0)
 
     # Link the new image to each material of the object
     for material in object.data.materials:
         nodes = material.node_tree.nodes
-        utils.material.add_empty_image(material, name=f'{object.name}_texture', width=None, height=None, image=image)
+        utils.material.add_empty_image(material, name=object.name, width=None, height=None, image=image)
 
     bpy.ops.object.bake(type='DIFFUSE')  # Bake old images into the new image
 
@@ -105,7 +105,7 @@ def merge_images(object: Object, resolution: int, new_uv_layer_name: str):
     material.use_nodes = True
     nodes = material.node_tree.nodes
     node_image: ShaderNodeTexImage = nodes.new(type='ShaderNodeTexImage')
-    node_image.name = f'{object.name}_texture'
+    node_image.name = object.name
     node_image.image = image
 
     # Add baked image to material

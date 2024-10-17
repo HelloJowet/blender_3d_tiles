@@ -1,84 +1,50 @@
 import bpy
+from bpy.types import Object
+from pydantic import BaseModel, PrivateAttr
 
-from src import logger, utils
-from src.tile import Tile
+from src import Tileset, logger, utils
 
 
-class Chunk:
-    """
-    Represents a chunk in a grid with 3D tiles.
-    """
+class Chunk(BaseModel):
+    _object: Object = PrivateAttr()
 
-    grid_x: int
-    grid_y: int
-    tiles: list[Tile]
+    def __init__(self, object: Object):
+        super().__init__()
+        self._object = object
 
-    def __init__(self, grid_x: int, grid_y: int):
-        self.grid_x = grid_x
-        self.grid_y = grid_y
-        self.tiles = []
+    def __post_init__(self):
+        # Center the view on the chunk
+        bpy.ops.view3d.view_selected()
 
-    def load_3d_object(self, file_path: str, clean: bool = True, combine_materials: bool = True):
+    @classmethod
+    def load(cls, grid_x: int, grid_y: int) -> 'Chunk':
+        object_name = f'chunk_{grid_x}_{grid_y}'
+        object = bpy.data.objects.get(object_name)
+
+        if object is None:
+            raise Exception(f'Object {object_name} could not be found')
+
+        return cls(object)
+
+    @classmethod
+    def create(cls, grid_x: int, grid_y: int, file_path: str) -> 'Chunk':
         bpy.ops.wm.obj_import(filepath=file_path)
 
         # Access the imported object and assign a unique name based on grid coordinates
-        selected_object = bpy.context.active_object
-        selected_object.name = f'tile_{self.grid_x}_{self.grid_y}__1'
-        selected_object.rotation_euler = (0, 0, 0)
+        object = bpy.context.active_object
+        object.name = f'chunk_{grid_x}_{grid_y}'
+        object.rotation_euler = (0, 0, 0)
 
-        # Center the view on the imported object
-        bpy.ops.view3d.view_selected()
+        logger.debug(f'Successfully created chunk {grid_x}_{grid_y}')
 
-        if clean:
-            utils.object.clean()
-        if combine_materials and len(selected_object.data.materials) > 1:
-            utils.object.combine_materials(selected_object)
+        return cls(object)
 
-        logger.debug(f'Successfully imported a 3d object from the following file path: {file_path}')
+    def clean(self):
+        utils.object.clean()
 
-    def create_tiles(self, depth: int):
-        """
-        Generates a hierarchical tile structure for the chunk, subdividing the root tile based on the specified depth.
-        """
+    def combine_materials(self):
+        if len(self._object.data.materials) > 1:
+            utils.object.combine_materials(self._object)
 
-        root_tile_object = bpy.data.objects.get(f'tile_{self.grid_x}_{self.grid_y}__1')
-        if not root_tile_object:
-            raise Exception('Root tile could not be found')
-
-        root_tile = Tile(object=root_tile_object)
-        self.tiles = self._get_tile_childrens(tile=root_tile, current_depth=1, max_depth=depth)
-
-        logger.debug(f'Successfully created tiles in the chunk {self.grid_x}_{self.grid_y}')
-
-    def _get_tile_childrens(self, tile: Tile, current_depth: int, max_depth: int) -> list[Tile]:
-        """
-        Recursively subdivides a tile, simplifies its geometry and texture, and creates children tiles.
-        """
-
-        tile_childrens = []
-
-        # Subdivide the tile into smaller tiles
-        tile.subdivide()
-
-        # Simplify geometry and texture based on the tileset depth
-        simplification_ratio = 1 / 4 ** (max_depth - current_depth)
-        tile.simplify(simplification_ratio if simplification_ratio > 0.03 else 0.03)
-
-        texture_scale = 1 / 2 ** (max_depth - current_depth)
-        if current_depth == 1:
-            tile.reduce_texture_resolution(texture_scale)
-        else:
-            tile.remove_unused_texture_pixels(texture_scale)
-
-        logger.debug(f'Successfully created the tile {tile.object.name}')
-
-        current_depth += 1
-        # Recursively create child tiles for further subdivision
-        for tile_child in tile.childrens:
-            if current_depth < max_depth:
-                tile_child.childrens = self._get_tile_childrens(tile_child, current_depth, max_depth)
-                tile_childrens.append(tile_child)
-            else:
-                tile_child.remove_unused_texture_pixels()
-
-        return tile_childrens
+    def create_tileset(self, max_depth: int) -> Tileset:
+        return Tileset.create(self._object, max_depth)
