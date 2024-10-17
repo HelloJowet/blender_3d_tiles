@@ -6,10 +6,13 @@ from src import Tileset, logger, utils
 
 
 class Chunk(BaseModel):
+    grid_x: int
+    grid_y: int
+
     _object: Object = PrivateAttr()
 
-    def __init__(self, object: Object):
-        super().__init__()
+    def __init__(self, object: Object, grid_x: int, grid_y: int):
+        super().__init__(grid_x=grid_x, grid_y=grid_y)
         self._object = object
 
     def __post_init__(self):
@@ -18,13 +21,13 @@ class Chunk(BaseModel):
 
     @classmethod
     def load(cls, grid_x: int, grid_y: int) -> 'Chunk':
-        object_name = f'chunk_{grid_x}_{grid_y}'
+        object_name = f'chunk_{grid_x}_{grid_y}__1'
         object = bpy.data.objects.get(object_name)
 
         if object is None:
             raise Exception(f'Object {object_name} could not be found')
 
-        return cls(object)
+        return cls(object, grid_x, grid_y)
 
     @classmethod
     def create(cls, grid_x: int, grid_y: int, file_path: str) -> 'Chunk':
@@ -37,7 +40,7 @@ class Chunk(BaseModel):
 
         logger.debug(f'Successfully created chunk {grid_x}_{grid_y}')
 
-        return cls(object)
+        return cls(object, grid_x, grid_y)
 
     def clean(self):
         utils.object.clean()
@@ -48,3 +51,6 @@ class Chunk(BaseModel):
 
     def create_tileset(self, max_depth: int) -> Tileset:
         return Tileset.create(self._object, max_depth)
+
+    def get_tileset(self, max_depth: int) -> Tileset:
+        return Tileset.get(self.grid_x, self.grid_y, max_depth)

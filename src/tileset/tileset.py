@@ -1,3 +1,4 @@
+import bpy
 from bpy.types import Object
 from pydantic import BaseModel
 
@@ -10,6 +11,15 @@ class Tileset(BaseModel):
     asset: dict = {'version': '1.0'}
     geometric_error: float
     root: Tile
+
+    @classmethod
+    def get(cls, grid_x: int, grid_y: int, max_depth: int) -> 'Tileset':
+        object_name = f'chunk_{grid_x}_{grid_y}__1'
+        object = bpy.data.objects.get(object_name)
+        if object is None:
+            raise Exception(f'Tileset root tile {object_name} could not be found')
+
+        return cls(geometric_error=1, root=Tile.get(object, current_depth=1, max_depth=max_depth))
 
     @classmethod
     def create(cls, object: Object, max_depth: int) -> 'Tileset':
