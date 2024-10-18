@@ -59,5 +59,8 @@ grid_y = 69
 # chunk.clean()
 # chunk.combine_materials()
 
+# chunk = Chunk.load(grid_x, grid_y)
+# chunk.create_tileset(max_depth=4)
+
 chunk = Chunk.load(grid_x, grid_y)
 tileset = chunk.get_tileset(max_depth=4)
