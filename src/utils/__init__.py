@@ -1,1 +1,1 @@
-from . import image, material, object, uv
+from . import image, material, object, tile, uv

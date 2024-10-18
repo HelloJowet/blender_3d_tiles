@@ -64,3 +64,4 @@ grid_y = 69
 
 chunk = Chunk.load(grid_x, grid_y)
 tileset = chunk.get_tileset(max_depth=4)
+print(tileset)
