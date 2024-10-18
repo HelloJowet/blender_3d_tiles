@@ -33,3 +33,7 @@ class Tileset(BaseModel):
         object.data.materials[0].name = object.name
 
         return cls(geometric_error=1, root=Tile.create(object, current_depth=1, max_depth=max_depth))
+
+    def save(self, file_path: str):
+        with open(f'{file_path}/tileset.json', 'w') as json_file:
+            json_file.write(self.model_dump_json())

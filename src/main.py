@@ -55,7 +55,7 @@ from src.session import Session  # noqa
 grid_x = 106
 grid_y = 69
 
-# chunk = Chunk.create(grid_x, grid_y, file_path=f'/Users/jonas.frei/Documents/Python/blender_01/data/data_2/Tile-{grid_x}-{grid_y}-1-1.obj')
+# chunk = Chunk.create(grid_x, grid_y, file_path=f'data/input/Tile-{grid_x}-{grid_y}-1-1.obj')
 # chunk.clean()
 # chunk.combine_materials()
 
@@ -64,4 +64,4 @@ grid_y = 69
 
 chunk = Chunk.load(grid_x, grid_y)
 tileset = chunk.get_tileset(max_depth=4)
-print(tileset)
+tileset.save(file_path='data/output')

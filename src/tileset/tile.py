@@ -1,4 +1,5 @@
 import re
+from typing import Optional
 
 import bpy
 from bpy.types import Object
@@ -11,7 +12,7 @@ from .content import Content
 
 
 class Tile(BaseModel):
-    transform: list[float]
+    transform: Optional[list[float]]
     bounding_volume: bounding_volume.Box
     geometric_error: float
     refine: enums.Refine = enums.Refine.replace
@@ -20,17 +21,17 @@ class Tile(BaseModel):
 
     @classmethod
     def get(cls, object: Object, current_depth: int, max_depth: int) -> 'Tile':
-        transformation_matrix = utils.tile.calculate_transformation_matrix(object)
-        geometric_error = utils.tile.calculate_geometric_error(transformation_matrix)
-        tile = cls(transform=transformation_matrix, bounding_volume=bounding_volume.Box(), geometric_error=geometric_error, content=Content(object), children=[])
+        # transformation_matrix = utils.tile.calculate_transformation_matrix(object)
+        geometric_error = utils.tile.calculate_geometric_error(object)
+        tile = cls(transform=None, bounding_volume=bounding_volume.Box(object), geometric_error=geometric_error, content=Content(object), children=[])
         tile.children = tile.get_children(current_depth, max_depth, parent_object_name=object.name)
         return tile
 
     @classmethod
     def create(cls, object: Object, current_depth: int, max_depth: int) -> 'Tile':
-        transformation_matrix = utils.tile.calculate_transformation_matrix(object)
-        geometric_error = utils.tile.calculate_geometric_error(transformation_matrix)
-        tile = cls(transform=transformation_matrix, bounding_volume=bounding_volume.Box(), geometric_error=geometric_error, content=Content(object), children=[])
+        # transformation_matrix = utils.tile.calculate_transformation_matrix(object)
+        geometric_error = utils.tile.calculate_geometric_error(object)
+        tile = cls(transform=None, bounding_volume=bounding_volume.Box(object), geometric_error=geometric_error, content=Content(object), children=[])
 
         if current_depth != 1:
             tile.content.remove_unused_texture_pixels()

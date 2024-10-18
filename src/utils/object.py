@@ -4,6 +4,7 @@ import bmesh
 import bpy
 from bmesh.types import BMFace
 from bpy.types import DecimateModifier, Object, ShaderNodeTexImage
+from mathutils import Vector
 
 from src import utils
 
@@ -226,3 +227,36 @@ def reduce_vertices(object: Object, decimate_ratio: float):
     # Ensure no unnecessary triangles are created and keep UV symmetry consistent
     decimate_modifier.use_collapse_triangulate = False
     decimate_modifier.use_symmetry = True
+
+
+def get_minimum_and_maximum_bounds(object: Object) -> tuple[float, float]:
+    # Get the object's bounding box in world coordinates
+    bounding_box_world = [object.matrix_world @ Vector(corner) for corner in object.bound_box]
+
+    # Calculate the minimum and maximum bounds in each axis
+    min_bound = [min(coordinate[i] for coordinate in bounding_box_world) for i in range(3)]
+    max_bound = [max(coordinate[i] for coordinate in bounding_box_world) for i in range(3)]
+
+    return (min_bound, max_bound)
+
+
+def get_bounding_box_center(object: Object) -> tuple[float, float, float]:
+    (min_bound, max_bound) = get_minimum_and_maximum_bounds(object)
+
+    # Calculate the center of the bounding box
+    center_x = (max_bound[0] + min_bound[0]) / 2
+    center_y = (max_bound[1] + min_bound[1]) / 2
+    center_z = (max_bound[2] + min_bound[2]) / 2
+
+    return (center_x, center_y, center_z)
+
+
+def get_axis_lengths(object: Object) -> tuple[float, float, float]:
+    (min_bound, max_bound) = get_minimum_and_maximum_bounds(object)
+
+    # Calculate lengths along each axis (X, Y, Z)
+    length_x = max_bound[0] - min_bound[0]
+    length_y = max_bound[1] - min_bound[1]
+    length_z = max_bound[2] - min_bound[2]
+
+    return (length_x, length_y, length_z)
