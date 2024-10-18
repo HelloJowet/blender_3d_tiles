@@ -3,15 +3,15 @@ from typing import Optional
 
 import bpy
 from bpy.types import Object
-from pydantic import BaseModel
 
 from src import enums, logger, utils
+from src.utils.pydantic import BaseSchema
 
 from . import bounding_volume
 from .content import Content
 
 
-class Tile(BaseModel):
+class Tile(BaseSchema):
     transform: Optional[list[float]]
     bounding_volume: bounding_volume.Box
     geometric_error: float
@@ -73,3 +73,9 @@ class Tile(BaseModel):
 
         # Recursively create child tiles for further subdivision
         return [Tile.create(child_object, current_depth, max_depth) for child_object in children_objects]
+
+    def save(self, folder_path: str):
+        self.content.save(folder_path)
+
+        for child in self.children:
+            child.save(folder_path)

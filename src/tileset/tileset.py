@@ -1,13 +1,13 @@
 import bpy
 from bpy.types import Object
-from pydantic import BaseModel
 
 from src import utils
+from src.utils.pydantic import BaseSchema
 
 from .tile import Tile
 
 
-class Tileset(BaseModel):
+class Tileset(BaseSchema):
     asset: dict = {'version': '1.0'}
     geometric_error: float
     root: Tile
@@ -19,7 +19,10 @@ class Tileset(BaseModel):
         if object is None:
             raise Exception(f'Tileset root tile {object_name} could not be found')
 
-        return cls(geometric_error=1, root=Tile.get(object, current_depth=1, max_depth=max_depth))
+        tile = Tile.get(object, current_depth=1, max_depth=max_depth)
+        tile.transform = [1, 0, 0, 0, 0, 0, -1, 0, 0, 1, 0, 0, 0, 0, 0, 1]
+
+        return cls(geometric_error=1, root=tile)
 
     @classmethod
     def create(cls, object: Object, max_depth: int) -> 'Tileset':
@@ -32,8 +35,13 @@ class Tileset(BaseModel):
         object.name += '__1'
         object.data.materials[0].name = object.name
 
-        return cls(geometric_error=1, root=Tile.create(object, current_depth=1, max_depth=max_depth))
+        tile = Tile.create(object, current_depth=1, max_depth=max_depth)
+        tile.transform = [1, 0, 0, 0, 0, 0, -1, 0, 0, 1, 0, 0, 0, 0, 0, 1]
 
-    def save(self, file_path: str):
-        with open(f'{file_path}/tileset.json', 'w') as json_file:
-            json_file.write(self.model_dump_json())
+        return cls(geometric_error=1, root=tile)
+
+    def save(self, folder_path: str):
+        self.root.save(folder_path)
+
+        with open(f'{folder_path}/tileset.json', 'w') as json_file:
+            json_file.write(self.model_dump_json(exclude_none=True, by_alias=True))

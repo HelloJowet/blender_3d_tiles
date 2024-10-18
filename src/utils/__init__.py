@@ -1,1 +1,1 @@
-from . import image, material, object, tile, uv
+from . import image, material, object, pydantic, tile, uv

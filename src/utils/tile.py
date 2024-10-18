@@ -20,10 +20,3 @@ def calculate_geometric_error(object: Object) -> float:
     diagonal = math.sqrt(length_x**2 + length_y**2 + length_z**2)
 
     return diagonal / 2
-
-
-def calculate_bounding_volume_box(object: Object) -> list[float]:
-    (center_x, center_y, center_z) = utils.object.get_bounding_box_center(object)
-    (length_x, length_y, length_z) = utils.object.get_axis_lengths(object)
-
-    return [center_x, center_y, center_z, length_x / 2, 0, 0, 0, length_y / 2, 0, 0, 0, length_z / 2]

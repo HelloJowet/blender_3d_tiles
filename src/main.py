@@ -64,4 +64,9 @@ grid_y = 69
 
 chunk = Chunk.load(grid_x, grid_y)
 tileset = chunk.get_tileset(max_depth=4)
-tileset.save(file_path='data/output')
+tileset.save(folder_path='data/output')
+
+# for object in bpy.data.objects:
+#     # object.location.x += 4056
+#     # object.location.y -= 67309
+#     object.hide_set(False)

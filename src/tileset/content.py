@@ -3,12 +3,13 @@ from typing import Optional
 
 import bpy
 from bpy.types import Object
-from pydantic import BaseModel, PrivateAttr
+from pydantic import PrivateAttr
 
 from src import utils
+from src.utils.pydantic import BaseSchema
 
 
-class Content(BaseModel):
+class Content(BaseSchema):
     uri: Optional[str]
 
     _object: Object = PrivateAttr()
@@ -62,3 +63,23 @@ class Content(BaseModel):
         material = self._object.data.materials[0]
 
         utils.image.remove_unused_pixels(image_node, material, self._object, new_uv_layer_name=str(uuid.uuid4()))
+
+    def save(self, folder_path: str):
+        # Deselect all objects
+        bpy.ops.object.select_all(action='DESELECT')
+
+        # Select the specified object
+        self._object.select_set(True)
+        bpy.context.view_layer.objects.active = self._object
+
+        self.uri = f'{self._object.name}.glb'
+
+        # bpy.ops.export_scene.gltf(
+        #     filepath=f'{folder_path}/{self._object.name}',
+        #     use_selection=True,
+        #     export_format='GLB',
+        #     export_apply=True,
+        #     export_materials='EXPORT',
+        #     export_image_format='WEBP',
+        #     export_draco_mesh_compression_enable=True,
+        # )
