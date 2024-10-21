@@ -64,9 +64,12 @@ grid_y = 69
 
 chunk = Chunk.load(grid_x, grid_y)
 tileset = chunk.get_tileset(max_depth=4)
-tileset.save(folder_path='data/output')
+tileset.save(folder_path='/Users/jonas.frei/Documents/JavaScript/playground_frontend/public/output/')
 
 # for object in bpy.data.objects:
-#     # object.location.x += 4056
-#     # object.location.y -= 67309
+#     # object.location.x -= 392109
+#     # object.location.y -= 5786098
+
+#     object.location.x += 2050
+#     object.location.y -= 33556
 #     object.hide_set(False)

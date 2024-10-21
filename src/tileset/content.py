@@ -65,6 +65,9 @@ class Content(BaseSchema):
         utils.image.remove_unused_pixels(image_node, material, self._object, new_uv_layer_name=str(uuid.uuid4()))
 
     def save(self, folder_path: str):
+        utils.object.remove_inactive_uv_layers(self._object)
+        self._object.data.uv_layers.active.name = 'UVMap'
+
         # Deselect all objects
         bpy.ops.object.select_all(action='DESELECT')
 
@@ -74,12 +77,12 @@ class Content(BaseSchema):
 
         self.uri = f'{self._object.name}.glb'
 
-        # bpy.ops.export_scene.gltf(
-        #     filepath=f'{folder_path}/{self._object.name}',
-        #     use_selection=True,
-        #     export_format='GLB',
-        #     export_apply=True,
-        #     export_materials='EXPORT',
-        #     export_image_format='WEBP',
-        #     export_draco_mesh_compression_enable=True,
-        # )
+        bpy.ops.export_scene.gltf(
+            filepath=f'{folder_path}/{self._object.name}',
+            use_selection=True,
+            export_format='GLB',
+            export_apply=True,
+            export_materials='EXPORT',
+            export_image_format='WEBP',
+            export_draco_mesh_compression_enable=True,
+        )

@@ -9,7 +9,6 @@ from .tile import Tile
 
 class Tileset(BaseSchema):
     asset: dict = {'version': '1.0'}
-    geometric_error: float
     root: Tile
 
     @classmethod
@@ -22,7 +21,7 @@ class Tileset(BaseSchema):
         tile = Tile.get(object, current_depth=1, max_depth=max_depth)
         tile.transform = [1, 0, 0, 0, 0, 0, -1, 0, 0, 1, 0, 0, 0, 0, 0, 1]
 
-        return cls(geometric_error=1, root=tile)
+        return cls(root=tile)
 
     @classmethod
     def create(cls, object: Object, max_depth: int) -> 'Tileset':

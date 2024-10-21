@@ -260,3 +260,13 @@ def get_axis_lengths(object: Object) -> tuple[float, float, float]:
     length_z = max_bound[2] - min_bound[2]
 
     return (length_x, length_y, length_z)
+
+
+def remove_inactive_uv_layers(object: Object):
+    mesh = object.data
+
+    # Iterate over the UV layers in reverse to avoid index shifting issues
+    for uv_layer in reversed(mesh.uv_layers):
+        # If it's not the active UV layer, remove it
+        if not uv_layer.active:
+            mesh.uv_layers.remove(uv_layer)
