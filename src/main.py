@@ -4,6 +4,7 @@ import sys
 from typing import Optional
 
 import bpy
+from mathutils import Vector
 
 
 def setup_blender_local_dev_environment():
@@ -55,21 +56,13 @@ from src.session import Session  # noqa
 grid_x = 106
 grid_y = 69
 
-# chunk = Chunk.create(grid_x, grid_y, file_path=f'data/input/Tile-{grid_x}-{grid_y}-1-1.obj')
+# chunk = Chunk.create(grid_x, grid_y, file_path=f'data/input/Tile-{grid_x}-{grid_y}-1-1.obj', center=Vector((390046.6250, 5819706.0000, 20)))
 # chunk.clean()
 # chunk.combine_materials()
 
 # chunk = Chunk.load(grid_x, grid_y)
-# chunk.create_tileset(max_depth=4)
+# tileset = chunk.create_tileset(max_depth=4)
 
 chunk = Chunk.load(grid_x, grid_y)
 tileset = chunk.get_tileset(max_depth=4)
 tileset.save(folder_path='/Users/jonas.frei/Documents/JavaScript/playground_frontend/public/output/')
-
-# for object in bpy.data.objects:
-#     # object.location.x -= 392109
-#     # object.location.y -= 5786098
-
-#     object.location.x += 2050
-#     object.location.y -= 33556
-#     object.hide_set(False)

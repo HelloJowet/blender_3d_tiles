@@ -1,5 +1,8 @@
+from typing import Optional
+
 import bpy
 from bpy.types import Object
+from mathutils import Vector
 from pydantic import BaseModel, PrivateAttr
 
 from src import Tileset, logger, utils
@@ -30,13 +33,16 @@ class Chunk(BaseModel):
         return cls(object, grid_x, grid_y)
 
     @classmethod
-    def create(cls, grid_x: int, grid_y: int, file_path: str) -> 'Chunk':
+    def create(cls, grid_x: int, grid_y: int, file_path: str, center: Optional[Vector] = None) -> 'Chunk':
         bpy.ops.wm.obj_import(filepath=file_path)
 
         # Access the imported object and assign a unique name based on grid coordinates
         object = bpy.context.active_object
         object.name = f'chunk_{grid_x}_{grid_y}'
         object.rotation_euler = (0, 0, 0)
+
+        if center:
+            utils.object.change_vertices_center(object, center)
 
         logger.debug(f'Successfully created chunk {grid_x}_{grid_y}')
 

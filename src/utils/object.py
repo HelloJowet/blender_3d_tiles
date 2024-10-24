@@ -229,6 +229,27 @@ def reduce_vertices(object: Object, decimate_ratio: float):
     decimate_modifier.use_symmetry = True
 
 
+def change_vertices_center(object: Object, new_center: Vector):
+    """
+    Center the vertex coordinates of the specified mesh object around a given center.
+    """
+
+    # Create a bmesh from the object
+    bm = bmesh.new()
+    bm.from_mesh(object.data)
+
+    # Move all vertices to be centered around the new_center
+    for v in bm.verts:
+        v.co -= new_center
+
+    # Update the mesh with the new vertex positions
+    bm.to_mesh(object.data)
+    bm.free()
+
+    # Remove artifacts in texture
+    bpy.ops.mesh.customdata_custom_splitnormals_clear()
+
+
 def get_minimum_and_maximum_bounds(object: Object) -> tuple[float, float]:
     # Get the object's bounding box in world coordinates
     bounding_box_world = [object.matrix_world @ Vector(corner) for corner in object.bound_box]
