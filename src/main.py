@@ -50,19 +50,19 @@ from src.chunk import Chunk  # noqa
 from src.session import Session  # noqa
 
 # Initialize session, which automatically cleans up existing data in the scene
-# session = Session()
-# session.clean()
+session = Session()
+session.clean()
 
 grid_x = 106
 grid_y = 69
 
-# chunk = Chunk.create(grid_x, grid_y, file_path=f'data/input/Tile-{grid_x}-{grid_y}-1-1.obj', center=Vector((390046.6250, 5819706.0000, 20)))
-# chunk.clean()
-# chunk.combine_materials()
+chunk = Chunk.create(grid_x, grid_y, file_path=f'data/input/Tile-{grid_x}-{grid_y}-1-1.obj', center=Vector((390046.6250, 5819706.0000, 20)))
+chunk.clean()
+chunk.combine_materials()
 
 # chunk = Chunk.load(grid_x, grid_y)
 # tileset = chunk.create_tileset(max_depth=4)
 
-chunk = Chunk.load(grid_x, grid_y)
-tileset = chunk.get_tileset(max_depth=4)
-tileset.save(folder_path='/Users/jonas.frei/Documents/JavaScript/playground_frontend/public/output/')
+# chunk = Chunk.load(grid_x, grid_y)
+# tileset = chunk.get_tileset(max_depth=4)
+# tileset.save(folder_path='/Users/jonas.frei/Documents/JavaScript/playground_frontend/public/output/')
